@@ -20,8 +20,8 @@ class Lift(models.Model):
     )
     out_of_order = models.BooleanField(default=False)
     # True: open, False: closed
-    door = models.BooleanField
-    currentFloor = models.IntegerField()
+    door = models.BooleanField(default=False)
+    currentFloor = models.IntegerField(default=0)
 
 class ElevatorSystem(models.Model):
     floors = models.IntegerField()

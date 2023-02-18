@@ -54,3 +54,26 @@ class LiftStatus(APIView):
             serializer.save()
             return Response(serializer.data,status=status.HTTP_205_RESET_CONTENT)
         return Response(serializer.erors,status=status.HTTP_400_BAD_REQUEST)
+
+
+class ElevatorSystemDetails(APIView):
+    def post(self, req):
+        serializer = ElevatorSystemSerializer(data=req.data)
+        max_lifts = req.data["lifts"]
+        if max_lifts > 10:
+            raise APIException("Can have a maximum of 10 lifts")
+        if serializer.is_valid():
+            serializers.save()
+        else:
+            return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
+        for i in range(max_lifts):
+            serializer = LiftSerializer(Lift())
+            serializer.save()
+        
+        res = Response()
+        res.data = {
+            "msg": "successfully initialized"
+        }
+
+        return res
+        
