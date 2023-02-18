@@ -8,7 +8,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'elevators_test',
-        'USER': 'user',
+        'USER': 'user1',
         'PASSWORD': 'password'
     }
 }
