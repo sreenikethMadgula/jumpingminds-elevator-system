@@ -23,6 +23,11 @@ class Lift(models.Model):
     door = models.BooleanField(default=False)
     currentFloor = models.IntegerField(default=0)
 
+    elevatorSystem = models.ForeignKey(
+        to='ElevatorSystem',
+        on_delete=models.CASCADE
+    )
+
 class ElevatorSystem(models.Model):
     floors = models.IntegerField()
     lifts = models.IntegerField()
