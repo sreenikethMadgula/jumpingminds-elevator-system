@@ -5,6 +5,16 @@ from rest_framework import status
 from rest_framework.exceptions import *
 from .serializers import *
 
+def set_lifts_to_default():
+    lifts = Lift.objects.all()
+    for lift in lifts:
+        lift.movement = 0
+        lift.out_of_order = False
+        lift.door = False
+        lift.currentFloor = 0
+        lift.save()
+    
+
 class HelloView(APIView):
     def get(self,req):
         res = Response()
@@ -40,6 +50,7 @@ class LiftStatus(APIView):
         except:
             raise NotFound("Invalid lift id")
         return lift
+
     def get(self,req,id):
         lift = self.get_lift_by_id(id)
         serializer = LiftSerializer(lift)
@@ -49,6 +60,18 @@ class LiftStatus(APIView):
         }
         return Response(data,status=status.HTTP_200_OK)
     
+    def put(self,req,id):
+        lift = self.get_lift_by_id(id)
+        serializer = LiftSerializer(lift,data=req.data)
+        if serializer.is_valid():
+            serializer.save()
+            data = {
+                "message": "success",
+                "data": serializer.data
+            }
+            return Response(data,status=status.HTTP_205_RESET_CONTENT)
+        return Response(serializer.erors,status=status.HTTP_400_BAD_REQUEST)
+
     def patch(self,req,id):
         lift = self.get_lift_by_id(id)
         serializer = LiftSerializer(lift,data=req.data,partial=True)
@@ -67,7 +90,6 @@ class InitializeView(APIView):
         
         if len(ElevatorSystem.objects.all()) == 1:
             raise APIException("Already Initialized. You can try updating using PUT or PATCH")
-
 
         serializer = ElevatorSystemSerializer(data=req.data)
         max_lifts = req.data["lifts"]
@@ -124,6 +146,7 @@ class ElevatorSystemDetails(APIView):
                 "message": "success",
                 "data": serializer.data
             }
+            set_lifts_to_default()
             return Response(data,status=status.HTTP_205_RESET_CONTENT)
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
@@ -138,5 +161,6 @@ class ElevatorSystemDetails(APIView):
                 "message": "success",
                 "data": serializer.data
             }
+            set_lifts_to_default()
             return Response(data,status=status.HTTP_205_RESET_CONTENT)
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)

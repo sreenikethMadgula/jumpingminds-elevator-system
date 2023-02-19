@@ -1,5 +1,5 @@
 from django.db import models
-
+from django.contrib.postgres.fields import ArrayField
 # class ElevatorSystem(models.Model):
 
 
@@ -37,4 +37,6 @@ class LiftRequest(models.Model):
         to='Lift',
         on_delete=models.CASCADE
     )
-    floor = models.IntegerField
+    destinations = ArrayField(
+        models.IntegerField(blank=True)
+    )
