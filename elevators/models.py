@@ -4,29 +4,32 @@ from django.contrib.postgres.fields import ArrayField
 
 
 class Lift(models.Model):
-    STILL=0
-    UP=1
-    DOWN=2
-    movement_choices = [
-        (STILL,"STILL"),
-        (UP,"UP"),
-        (DOWN,"DOWN")
-    ]
+    # STILL=0
+    # UP=1
+    # DOWN=2
+    # movement_choices = [
+    #     (STILL,"STILL"),
+    #     (UP,"UP"),
+    #     (DOWN,"DOWN")
+    # ]
 
-    movement = models.IntegerField(
-        max_length=1,
-        choices=movement_choices,
-        default=STILL
-    )
+    # movement = models.IntegerField(
+    #     max_length=1,
+    #     choices=movement_choices,
+    #     default=STILL
+    # )
+
+    # True: moving, False: still
+    movement = models.BooleanField(default=False)
     out_of_order = models.BooleanField(default=False)
     # True: open, False: closed
     door = models.BooleanField(default=False)
-    currentFloor = models.IntegerField(default=0)
+    current_floor = models.IntegerField(default=0)
 
-    elevatorSystem = models.ForeignKey(
-        to='ElevatorSystem',
-        on_delete=models.CASCADE
-    )
+    # elevator_system = models.ForeignKey(
+    #     to='ElevatorSystem',
+    #     on_delete=models.CASCADE
+    # )
 
 class ElevatorSystem(models.Model):
     floors = models.IntegerField()

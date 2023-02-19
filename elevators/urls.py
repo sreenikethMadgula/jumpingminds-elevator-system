@@ -9,5 +9,7 @@ urlpatterns = [
     path('elevator-system-info/',ElevatorSystemDetails.as_view()),
     path('lifts/',LiftList.as_view()),
     path('lifts/<int:id>',LiftStatus.as_view()),
-    # path('call/<int:floor>')
+    path('lift/<int:id>/requests',LiftRequestList.as_view())
+    # path('lifts/positions')
+    # path('call-lift/')
 ]
