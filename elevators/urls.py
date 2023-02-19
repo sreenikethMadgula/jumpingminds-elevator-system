@@ -9,7 +9,8 @@ urlpatterns = [
     path('elevator-system-info/',ElevatorSystemDetails.as_view()),
     path('lifts/',LiftList.as_view()),
     path('lifts/<int:id>',LiftStatus.as_view()),
-    path('lift/<int:id>/requests',LiftRequestList.as_view())
-    # path('lifts/positions')
-    # path('call-lift/')
+    path('lifts/positions', LiftPositionsView.as_view()),
+    path('lift/<int:id>/requests',LiftRequestList.as_view()),
+    path('call-lift/',CallLiftView.as_view()),
+    path('choose-floor/',ChooseFloorView.as_view()),
 ]
