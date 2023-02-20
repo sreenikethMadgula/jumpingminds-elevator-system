@@ -1,4 +1,5 @@
 from .models import *
+from .serializers import *
 from rest_framework.exceptions import *
 
 def set_lift_to_default(lift: Lift):
@@ -13,9 +14,38 @@ def set_lifts_to_default():
     for lift in lifts:
         set_lift_to_default(lift)
 
+def initialize_lifts(max_lifts):
+    for i in range(max_lifts):
+        lift = {
+            "movement":False,
+            "out_of_order":False,
+            "current_floor":0,
+            "door":False
+        }
+        serializer = LiftSerializer(data=lift)
+        if serializer.is_valid():
+            lift = serializer.save()
+            print("lift",lift.id)
+
+        lift_request_obj = {
+            "lift": lift.id,
+            "destinations":[0]
+        }
+        serializer = LiftRequestSerializer(data=lift_request_obj)
+        if serializer.is_valid():
+            obj = serializer.save()
+            print("obj", obj.id)
+            obj = LiftRequest.objects.filter(lift=lift).first()
+            obj.destinations = []
+            obj.save()
+            print("destinations",obj.destinations)
+            # serializer = LiftRequestSerializer(obj)
+        
+        # return serializer
+
 def get_elevator_system():
     try:
-        elevatorSystem = ElevatorSystem.objects.get(pk=1)
+        elevatorSystem = ElevatorSystem.objects.all().first()
     except:
         raise APIException("Elevator System not initialized.")
     

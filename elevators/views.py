@@ -37,56 +37,88 @@ class LiftStatus(APIView):
 
         lift = get_lift_from_id(id)
         try:
-            ooo = req.data["out_of_order"]
+            door=req.data["data"]
         except:
             return Response(
                 {
-                    "message": "must have and can only change out_of_order field"
+                    "message": "must have and can only change door field"
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
-        # serializer = LiftSerializer(lift,data=req.data,partial=True)
-        # if serializer.is_valid():
-        #     serializer.save()
-        #     data = {
-        #         "message": "success",
-        #         "data": serializer.data
-        #     }
-        #     return Response(data,status=status.HTTP_205_RESET_CONTENT)
-        # return Response(serializer.erors,status=status.HTTP_400_BAD_REQUEST)
-        lift.out_of_order = ooo
-        serializer = LiftSerializer(data=lift)
-        if serializer.is_valid():
+        try:
+            lift.door = door
+            serializer = LiftSerializer(data=lift)
+            if serializer.is_valid():
+                serializer.save()
+            else:
+                return Response(
+                    serializer.errors,
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if door == False:
+                destinations = get_lift_destinations(lift)
+                if len(destinations) != 0:
+                    destinations = go_to_next_destination(lift)
+                    lift.door = True
+                    lift.save()
+
+            data = {
+                "message": "success",
+                "lift": lift.id,
+                "door": lift.door,
+                "destinations": destinations
+            }
             return Response(
-                {
-                    "message": "success",
-                    "lift_status": serializer.data,
-                    "movement": get_movement_string(lift)
-                },
+                data,
                 status=status.HTTP_205_RESET_CONTENT
             )
-        return Response(
-            serializer.errors,
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        except:
+            raise APIException("Failed due to internal server error")
+        # try:
+        #     ooo = req.data["out_of_order"]
+        #     lift.out_of_order = ooo
+        # except:
+        #     # return Response(
+        #     #     {
+        #     #         "message": "must have and can only change out_of_order field"
+        #     #     },
+        #     #     status=status.HTTP_400_BAD_REQUEST
+        #     # )
+        #     pass
+        
+
+        # serializer = LiftSerializer(lift,data=req.data,partial=True)
+        # if serializer.is_valid():
+        #     return Response(
+        #         {
+        #             "message": "success",
+        #             "lift_status": serializer.data,
+        #             "movement": get_movement_string(lift)
+        #         },
+        #         status=status.HTTP_205_RESET_CONTENT
+        #     )
+        # return Response(
+        #     serializer.errors,
+        #     status=status.HTTP_400_BAD_REQUEST
+        # )
 
 
-class LiftPositionsView(APIView):
-    def get(self,req):
-        elevator_system = get_elevator_system()
-        lifts = Lift.objects.all()
-        lift_floor = {}
-        for lift in lifts:
-            lift_floor["lift "+str(lift.id)] = "floor "+str(lift.current_floor)
-        data = {
-            "message":"success",
-            # "description": "key: lift, value: current floor",
-            "positions": lift_floor
-        }
-        return Response(data,status=status.HTTP_200_OK)
+# class LiftPositionsView(APIView):
+#     def get(self,req):
+#         elevator_system = get_elevator_system()
+#         lifts = Lift.objects.all()
+#         lift_floor = {}
+#         for lift in lifts:
+#             lift_floor["lift "+str(lift.id)] = "floor "+str(lift.current_floor)
+#         data = {
+#             "message":"success",
+#             # "description": "key: lift, value: current floor",
+#             "positions": lift_floor
+#         }
+#         return Response(data,status=status.HTTP_200_OK)
 
 
-class InitializeView(APIView):
+class ElevatorSystemDetails(APIView):
     def post(self, req):
         
         if len(ElevatorSystem.objects.all()) == 1:
@@ -111,33 +143,8 @@ class InitializeView(APIView):
             serializer.save()
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        for i in range(max_lifts):
-            lift = {
-                "movement":False,
-                "out_of_order":False,
-                "current_floor":0,
-                "door":False
-            }
-            serializer = LiftSerializer(data=lift)
-            if serializer.is_valid():
-                lift = serializer.save()
-                print("lift",lift.id)
-
-            lift_request_obj = {
-                "lift": lift.id,
-                "destinations":[0]
-            }
-            serializer = LiftRequestSerializer(data=lift_request_obj)
-            if serializer.is_valid():
-                obj = serializer.save()
-                print("obj", obj.id)
-                obj = LiftRequest.objects.filter(lift=lift).first()
-                obj.destinations = []
-                obj.save()
-                print("destinations",obj.destinations)
-                serializer = LiftRequestSerializer(obj)
-            else:
-                print("error",serializer.errors)
+        
+        initialize_lifts(max_lifts)
         res = Response()
         res.data = {
             "message": "success",
@@ -146,11 +153,9 @@ class InitializeView(APIView):
 
         return res
         
-
-class ElevatorSystemDetails(APIView):
     def get(self,req):
-        elevatorSystem = get_elevator_system()
-        serializer = ElevatorSystemSerializer(elevatorSystem)
+        elevator_system = get_elevator_system()
+        serializer = ElevatorSystemSerializer(elevator_system)
         data = {
             "message": "success",
             "elevator-system": serializer.data
@@ -176,58 +181,20 @@ class ElevatorSystemDetails(APIView):
                 "elevator-system": serializer.data
             }
             if lifts>elevator_system.lifts:
-                for i in range(elevator_system.lifts-lifts):
-                    lift = {
-                        "movement":False,
-                        "out_of_order":False,
-                        "current_floor":0,
-                        "door":False
-                    }
-                    serializer = LiftSerializer(data=lift)
-                    if serializer.is_valid():
-                        lift = serializer.save()
-                    lift_request_obj = {
-                        "lift": lift.id,
-                        "destinations":[0]
-                    }
-                    serializer = LiftRequestSerializer(data=lift_request_obj)
-                    if serializer.is_valid():
-                        serializer.save()                
-            set_lifts_to_default()
+                initialize_lifts(elevator_system.lifts - lifts)      
             return Response(data,status=status.HTTP_205_RESET_CONTENT)
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self,req):
-        elevatorSystem = get_elevator_system()
+        elevator_system = get_elevator_system()
         try:
             lifts = req.data["lifts"]
-            if lifts>elevatorSystem.lifts:
-                print("here")
-                for i in range(lifts - elevatorSystem.lifts):
-                    lift = {
-                        "movement":False,
-                        "out_of_order":False,
-                        "current_floor":0,
-                        "door":False
-                    }
-
-                    serializer = LiftSerializer(data=lift)
-                    if serializer.is_valid():
-                        lift = serializer.save()
-                    lift_request_obj = {
-                        "lift": lift.id,
-                        "destinations":[0]
-                    }
-                    serializer = LiftRequestSerializer(data=lift_request_obj)
-                    if serializer.is_valid():
-                        serializer.save()
-                    
-            set_lifts_to_default()
-
+            if lifts>elevator_system.lifts:
+                initialize_lifts(elevator_system.lifts - lifts)
         except Exception as e:
             print("this happened", e)
             pass
-        serializer = ElevatorSystemSerializer(elevatorSystem,data=req.data,partial=True)
+        serializer = ElevatorSystemSerializer(elevator_system,data=req.data,partial=True)
         if serializer.is_valid():
             serializer.save()
             data = {
@@ -236,15 +203,22 @@ class ElevatorSystemDetails(APIView):
             }
             return Response(data,status=status.HTTP_205_RESET_CONTENT)
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self,req):
+        elevator_system = get_elevator_system()
+        elevator_system.delete()
+        return Response(
+            {
+                "message":"success"
+            },
+            status=status.HTTP_204_NO_CONTENT
+        )
 
-class LiftRequestList(APIView):
-    def get_lift_requests_by_lift_id(self,id: int):
-        lift = get_lift_from_id(id)
-        requests = LiftRequest.objects.filter(lift=lift).first()
-        return requests
+class LiftRequestDetails(APIView):
     def get(self,req,id: int):
         elevator_system = get_elevator_system()
-        requests = self.get_lift_requests_by_lift_id(id)
+        lift = get_lift_from_id(id)
+        requests = get_lift_req_obj_from_lift(lift)
         serializer = LiftRequestSerializer(requests)
         print(serializer.data)
         data = {
@@ -252,10 +226,47 @@ class LiftRequestList(APIView):
             "data": serializer.data
         }
         return Response(data,status=status.HTTP_200_OK)
+    
+    def patch(self, req, id: int):
+        elevator_system = get_elevator_system()
+        try:
+            destination_floor = req.data["destination"]
+        except:
+            return Response(
+                {
+                    "message": "missing fields: destination"
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        max_floors = elevator_system.floors
+        if destination_floor > max_floors or destination_floor < 0:
+            raise APIException("Floor outside range")
+
+        lift = get_lift_from_id(id)
+        destinations = update_destinations(lift,destination_floor)
+
+        if lift.door:
+            lift.door = False
+            destinations = go_to_next_destination(lift)
+            lift.door = True
+            lift.save()
+        else:
+            if len(destinations) == 1:
+                destinations = go_to_next_destination(lift)
+                lift.door = True
+                lift.save()
+        data = {
+            "message": "success",
+            "lift": id,
+            "destinations": destinations
+        }
+        return Response(data)
+
 
 class CallLiftView(APIView):
     def post(self,req):
-        elevatorSystem = get_elevator_system()
+        elevator_system = get_elevator_system()
         try:
             floor = req.data["floor"]
         except:
@@ -265,7 +276,7 @@ class CallLiftView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
-        max_floors = elevatorSystem.floors
+        max_floors = elevator_system.floors
 
         if floor > max_floors or floor < 0:
             raise APIException("Floor outside range")
@@ -279,9 +290,10 @@ class CallLiftView(APIView):
         else:
             destinations = update_destinations(assigned_lift,floor)
             if len(destinations) == 1:
-                if not assigned_lift.door:
+                if assigned_lift.door == False:
                     destinations = go_to_next_destination(assigned_lift)
                     assigned_lift.door = True
+                    assigned_lift.save()
         data = {
             "message": "success",
             "assigned_lift": assigned_lift.id,
@@ -290,71 +302,71 @@ class CallLiftView(APIView):
 
         return Response(data)
 
-class ChooseFloorView(APIView):
-    def post(self,req):
-        elevatorSystem = get_elevator_system()
+# class ChooseFloorView(APIView):
+#     def post(self,req):
+#         elevator_system = get_elevator_system()
 
-        try:
-            lift_id = req.data["lift"]
-            destination_floor = req.data["destination"]
-        except:
-            return Response(
-                {
-                    "message": "missing fields: lift and/or destination"
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        max_floors = elevatorSystem.floors
-        if destination_floor > max_floors or destination_floor < 0:
-            raise APIException("Floor outside range")
+#         try:
+#             lift_id = req.data["lift"]
+#             destination_floor = req.data["destination"]
+#         except:
+#             return Response(
+#                 {
+#                     "message": "missing fields: lift and/or destination"
+#                 },
+#                 status=status.HTTP_400_BAD_REQUEST
+#             )
+#         max_floors = elevator_system.floors
+#         if destination_floor > max_floors or destination_floor < 0:
+#             raise APIException("Floor outside range")
 
-        lift = get_lift_from_id(lift_id)
-        destinations = update_destinations(lift,destination_floor)
+#         lift = get_lift_from_id(lift_id)
+#         destinations = update_destinations(lift,destination_floor)
 
-        if lift.door:
-            lift.door = False
-            destinations = go_to_next_destination(lift)
-            lift.door = True
-        else:
-            if len(destinations) == 1:
-                destinations = go_to_next_destination(lift)
-                lift.door = True
-        data = {
-            "message": "success",
-            "lift": lift_id,
-            "destinations": destinations
-        }
-        return Response(data)
+#         if lift.door:
+#             lift.door = False
+#             destinations = go_to_next_destination(lift)
+#             lift.door = True
+#         else:
+#             if len(destinations) == 1:
+#                 destinations = go_to_next_destination(lift)
+#                 lift.door = True
+#         data = {
+#             "message": "success",
+#             "lift": lift_id,
+#             "destinations": destinations
+#         }
+#         return Response(data)
 
-class CloseDoorView(APIView):
-    def post(self,req):
-        elevator_system = get_elevator_system()
-        try:
-            lift_id = req.data["lift"]
-        except:
-            return Response(
-                {
-                    "message": "missing fields: lift"
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        lift = get_lift_from_id(lift_id)
-        if not lift.door:
-            return Response(
-                {
-                    "message": "Door is already closed"
-                }
-            )
-        lift.door = False
+# class CloseDoorView(APIView):
+#     def post(self,req):
+#         elevator_system = get_elevator_system()
+#         try:
+#             lift_id = req.data["lift"]
+#         except:
+#             return Response(
+#                 {
+#                     "message": "missing fields: lift"
+#                 },
+#                 status=status.HTTP_400_BAD_REQUEST
+#             )
+#         lift = get_lift_from_id(lift_id)
+#         if not lift.door:
+#             return Response(
+#                 {
+#                     "message": "Door is already closed"
+#                 }
+#             )
+#         lift.door = False
         
-        destinations = get_lift_destinations(lift)
-        if len(destinations) != 0:
-            destinations = go_to_next_destination(lift)
-            lift.door = True
+#         destinations = get_lift_destinations(lift)
+#         if len(destinations) != 0:
+#             destinations = go_to_next_destination(lift)
+#             lift.door = True
 
-        data = {
-            "message": "success",
-            "lift": lift_id,
-            "destinations": destinations
-        }
-        return Response(data, status=status.HTTP_200_OK)
+#         data = {
+#             "message": "success",
+#             "lift": lift_id,
+#             "destinations": destinations
+#         }
+#         return Response(data, status=status.HTTP_200_OK)
