@@ -102,6 +102,36 @@ class LiftStatus(APIView):
         #     status=status.HTTP_400_BAD_REQUEST
         # )
 
+class LiftMaintenance(APIView):
+    def post(self,req,id):
+        elevator_system = get_elevator_system()
+        lift = get_lift_from_id(id)
+
+        try:
+            lift = req.data["lift"]
+            ooo = req.data["out_of_order"]
+        except:
+            return Response(
+                {
+                    "message": "missing fields: lift and/or out_of_order"
+                    # "message": "must have and can change only 'out_of_order' field"
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        set_lift_to_default(lift)
+        lift.out_of_order = ooo
+        lift.save()
+        serializer = LiftSerializer(data=lift)
+        if serializer.is_valid():
+            return Response(
+                {
+                    "message":"success",
+                    "lift": serializer.data
+                }
+            )
+        else:
+            raise APIException("Failed due to internal server error")
 
 # class LiftPositionsView(APIView):
 #     def get(self,req):
