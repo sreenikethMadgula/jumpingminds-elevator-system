@@ -92,10 +92,21 @@ class InitializeView(APIView):
         if len(ElevatorSystem.objects.all()) == 1:
             raise APIException("Already Initialized. You can try updating using PUT or PATCH")
 
-        serializer = ElevatorSystemSerializer(data=req.data)
-        max_lifts = req.data["lifts"]
+        try:
+            max_lifts = req.data["lifts"]
+            max_floors = req.data["floors"]
+        except:
+            return Response(
+                {
+                    "message": "missing fields: lifts and/or floors"
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         if max_lifts > 10:
             raise APIException("Can have a maximum of 10 lifts")
+        
+        serializer = ElevatorSystemSerializer(data=req.data)
         if serializer.is_valid():
             serializers.save()
         else:
@@ -178,8 +189,16 @@ class LiftRequestList(APIView):
 
 class CallLiftView(APIView):
     def post(self,req):
-        floor = req.data["floor"]
         elevatorSystem = get_elevator_system()
+        try:
+            floor = req.data["floor"]
+        except:
+            return Response(
+                {
+                    "message": "missing fields: floor"
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
         max_floors = elevatorSystem.floors
 
         if floor > max_floors or floor < 0:
@@ -199,10 +218,19 @@ class CallLiftView(APIView):
         return Response(data)
 
 class ChooseFloorView(APIView):
-    def post(self,req,id):
+    def post(self,req):
         # user_current_floor = req.data["user_current_floor"]
-        lift = get_lift_from_id(req.data["lift"])
-        destination_floor = req.data["destination"]
+
+        try:
+            lift = get_lift_from_id(req.data["lift"])
+            destination_floor = req.data["destination"]
+        except:
+            return Response(
+                {
+                    "message": "missing fields: lift and/or destination"
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
         elevatorSystem = get_elevator_system()
         max_floors = elevatorSystem.floors
         if destination_floor > max_floors or destination_floor < 0:
@@ -227,12 +255,44 @@ class ChooseFloorView(APIView):
         #         "message": "Invalid request. Lift is moving"
         #     }
 
-        lift_request_obj = get_lift_req_obj_from_lift(lift)
+        # lift_request_obj = get_lift_req_obj_from_lift(lift)
 
-        lift_request_obj = update_destinations(lift_request_obj,destination_floor)
+        destinations = update_destinations(lift,destination_floor)
+
+        if lift.door:
+            lift.door = False
+            destinations = go_to_next_destination(lift)
+        data = {
+            "message": "success",
+            "destinations": destinations
+        }
+            
+
+class CloseDoorView(APIView):
+    def post(self,req):
+        elevator_system = get_elevator_system()
+        try:
+            lift_id = req.data["lift"]
+        except:
+            return Response(
+                {
+                    "message": "missing fields: lift"
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        lift = get_lift_from_id(lift_id)
+        if not lift.door:
+            return Response(
+                {
+                    "message": "Door is already closed"
+                }
+            )
+        lift.door = False
+        
+        destinations = go_to_next_destination(lift)
 
         data = {
             "message": "success",
-            "destinations": lift_request_obj.destinations
+            "destinations": destinations
         }
-            
+        return Response(data, status=status.HTTP_200_OK)

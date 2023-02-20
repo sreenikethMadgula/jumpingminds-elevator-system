@@ -65,7 +65,7 @@ def get_lift_score(lift: Lift,floor):
 
 
 def assign_lift(calling_floor: int):
-    elevatorSystem = get_elevator_system()
+    # elevatorSystem = get_elevator_system()
     lifts = Lift.objects.all()
     # max_floors = elevatorSystem.floors
     min_score = get_lift_score(lifts[0])
@@ -87,7 +87,8 @@ def shitf_right(arr: list, pos: int):
         arr[i] = arr[i-1]
 
 
-def update_destinations(lift_request_obj: LiftRequest, floor):
+def update_destinations(lift: Lift, floor):
+    lift_request_obj = get_lift_req_obj_from_lift(lift)
     destinations = lift_request_obj.destinations
     lift = Lift.objects.get(pk=lift_request_obj.lift.id)
     n = len(destinations)
@@ -95,7 +96,7 @@ def update_destinations(lift_request_obj: LiftRequest, floor):
         destinations.append(floor)
         lift_request_obj.destinations = destinations
         lift_request_obj.save()
-        return lift_request_obj
+        return destinations
 
     current_floor = lift.current_floor
 
@@ -106,7 +107,7 @@ def update_destinations(lift_request_obj: LiftRequest, floor):
             destinations[0] = floor
             lift_request_obj.destinations = destinations
             lift_request_obj.save()
-            return lift_request_obj
+            return destinations
         
     i = 0
     while i+1<n:
@@ -118,4 +119,16 @@ def update_destinations(lift_request_obj: LiftRequest, floor):
             destinations[i] = floor
             lift_request_obj.destinations = destinations
             lift_request_obj.save()
-            return lift_request_obj
+            return destinations
+
+
+def go_to_next_destination(lift: Lift):
+    obj = get_lift_req_obj_from_lift(lift)
+    destinations = obj.destinations
+    if len(destinations):
+        lift.current_floor = destinations.pop(0)
+        obj.destinations = destinations
+        obj.save()
+        lift.save()
+
+    return destinations
