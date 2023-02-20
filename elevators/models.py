@@ -41,5 +41,8 @@ class LiftRequest(models.Model):
         on_delete=models.CASCADE
     )
     destinations = ArrayField(
-        models.IntegerField(blank=True)
+        models.IntegerField(
+            blank=True,
+            null=True
+        )
     )

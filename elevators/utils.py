@@ -1,14 +1,17 @@
 from .models import *
 from rest_framework.exceptions import *
 
+def set_lift_to_default(lift: Lift):
+    lift.movement = False
+    lift.out_of_order = False
+    lift.door = False
+    lift.current_floor = 0
+    lift.save()
+
 def set_lifts_to_default():
     lifts = Lift.objects.all()
     for lift in lifts:
-        lift.movement = False
-        lift.out_of_order = False
-        lift.door = False
-        lift.currentFloor = 0
-        lift.save()
+        set_lift_to_default(lift)
 
 def get_elevator_system():
     try:
@@ -23,7 +26,7 @@ def get_lift_from_id(id: int):
         lift = Lift.objects.get(pk=id)
     except:
         raise NotFound("Invalid lift id")
-    
+
     return lift
 
 def get_lift_req_obj_from_lift(lift: Lift):
@@ -31,7 +34,26 @@ def get_lift_req_obj_from_lift(lift: Lift):
 
 def get_lift_destinations(lift: Lift):
     obj = LiftRequest.objects.filter(lift=lift).first()
+    print("obj",obj)
     return obj.destinations
+
+def get_lift_movement(lift: Lift):
+    destinations = get_lift_destinations(lift)
+    if len(destinations) == 0:
+        return 0
+    
+    if lift.current_floor > destinations[0]:
+        return 1
+    
+    return 2
+
+def get_movement_string(lift: Lift):
+    movement = get_lift_movement(lift)
+    if movement == 0:
+        return "STILL"
+    if movement == 1:
+        return "GOING UP"
+    return "GOING DOWN"
 
 def get_lift_score(lift: Lift,floor):
     current_floor = lift.current_floor
@@ -65,15 +87,12 @@ def get_lift_score(lift: Lift,floor):
 
 
 def assign_lift(calling_floor: int):
-    # elevatorSystem = get_elevator_system()
-    lifts = Lift.objects.all()
-    # max_floors = elevatorSystem.floors
-    min_score = get_lift_score(lifts[0])
+    lifts = Lift.objects.filter(out_of_order=False)
+    # lifts = Lift.objects.filter(lift__out_of_order=False)
+    min_score = get_lift_score(lifts[0],calling_floor)
     assigned_lift = lifts[0]
-    # scores = {}
     for lift in lifts:
         score = get_lift_score(lift,calling_floor)
-        # scores[lift.id] = score
         if score < min_score:
             min_score = score
             assigned_lift = lift
