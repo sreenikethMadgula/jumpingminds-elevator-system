@@ -5,7 +5,7 @@ from .views import *
 urlpatterns = [
     path('hello/',HelloView.as_view()),
     path('elevator-system/',ElevatorSystemDetails.as_view()),
-    path('elevator-system/maintenance',ElevatorSystemDetails.as_view()),
+    path('elevator-system/maintenance',LiftMaintenance.as_view()),
     # path('elevator-system/maintenance/',)
     path('lift/',LiftList.as_view()),
     path('lift/<int:id>/',LiftStatus.as_view()),
