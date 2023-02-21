@@ -6,6 +6,10 @@ from rest_framework.exceptions import *
 from .serializers import *
 from .utils import *
 
+from drf_yasg import openapi
+# from drf_yasg.inspectors import SwaggerAutoSchema
+from drf_yasg.utils import swagger_auto_schema
+
 class HelloView(APIView):
     def get(self,req):
         elevator_system = get_elevator_system()
@@ -17,6 +21,27 @@ class HelloView(APIView):
         return res
 
 class ElevatorSystemDetails(APIView):
+    """
+    Elevator System Details
+    """
+    @swagger_auto_schema(
+        operation_summary="initialize elevator system",
+        operation_description="initialize elevator system",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            description='Number of floors and lifts',
+            properties={
+                'floors': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    # description='Inintialize'
+                ),
+                'lifts': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    # description='Inintialize'
+                )
+            }
+        ),
+    )
     def post(self, req):
         
         if len(ElevatorSystem.objects.all()) == 1:
@@ -51,6 +76,11 @@ class ElevatorSystemDetails(APIView):
 
         return res
         
+    @swagger_auto_schema(
+        operation_summary="get elevator system details",
+        operation_description="get elevator system details",
+        operation_id="elevator-system_read"
+    )
     def get(self,req):
         elevator_system = get_elevator_system()
         serializer = ElevatorSystemSerializer(elevator_system)
@@ -60,7 +90,10 @@ class ElevatorSystemDetails(APIView):
         }
         return Response(data,status=status.HTTP_200_OK)
     
-    
+    @swagger_auto_schema(
+        operation_summary="delete elevator system",
+        operation_description="delete elevator system",
+    )
     def delete(self,req):
         elevator_system = get_elevator_system()
         elevator_system.delete()
@@ -73,6 +106,13 @@ class ElevatorSystemDetails(APIView):
         )
 
 class LiftList(APIView):
+    """
+    Lift list
+    """
+    @swagger_auto_schema(
+        operation_summary="get lift list",
+        operation_description="get lift list",
+    )
     def get(self,req):
         lifts = Lift.objects.all()
         # serializer = LiftSerializer(lifts,many=True)
@@ -87,6 +127,13 @@ class LiftList(APIView):
         return Response(data)
 
 class LiftDetails(APIView):
+    """
+    Lift Details
+    """
+    @swagger_auto_schema(
+        operation_summary="get lift details",
+        operation_description="get lift details: door, current floor, destinations, next destination, movement, out of order",
+    )
     def get(self,req,id: int):
         elevator_system = get_elevator_system()
         lift = get_lift_from_id(id)
@@ -99,6 +146,13 @@ class LiftDetails(APIView):
         return Response(data,status=status.HTTP_200_OK)
 
 class LiftRequest(APIView):
+    """
+    Lift requests
+    """
+    @swagger_auto_schema(
+        operation_summary="get lift destinations",
+        operation_description="get lift destinations",
+    )
     def get(self,req,id: int):
         elevator_system = get_elevator_system()
         lift = get_lift_from_id(id)
@@ -106,9 +160,30 @@ class LiftRequest(APIView):
         next_destination = None
         if len(destinations):
             next_destination = destinations[0]
-        data = get_response_obj(lift,next_destination)
+        # data = get_response_obj(lift,next_destination)
+        data = {
+            "message": "success",
+            "lift":lift.id,
+            "destinations":lift.destinations
+        }
         return Response(data,status=status.HTTP_200_OK)
+
     
+    @swagger_auto_schema(
+        operation_summary="choose destination floor from inside lift",
+        operation_description="choose destination from inside lift",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            description='destination floor',
+            properties={
+                'destination': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    default=0
+                    # description='Inintialize'
+                )
+            }
+        ),
+    )
     def patch(self, req, id: int):
         elevator_system = get_elevator_system()
         try:
@@ -150,6 +225,14 @@ class LiftRequest(APIView):
         return Response(data)
 
 class LiftDoor(APIView):
+    """
+    Lift door
+    """
+    @swagger_auto_schema(
+        operation_summary="get lift door status",
+        operation_description="get lift door status",
+        operation_id="lift_door_read"
+    )
     def get(self,req,id):
         elevator_system = get_elevator_system()
         lift = get_lift_from_id(id)
@@ -158,6 +241,21 @@ class LiftDoor(APIView):
             "lift":lift.id,
             "door":get_door_string(lift)
         }
+    
+    @swagger_auto_schema(
+        operation_summary="open/close door",
+        operation_description="open/close door",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            description='false -> close door, true -> open door',
+            properties={
+                'door': openapi.Schema(
+                    type=openapi.TYPE_BOOLEAN,
+                    # description='Inintialize'
+                )
+            }
+        ),
+    )
     def patch(self,req,id: int):
         elevator_system = get_elevator_system()
         lift = get_lift_from_id(id)
@@ -195,6 +293,24 @@ class LiftDoor(APIView):
             raise APIException("Failed due to internal server error")
     
 class LiftMaintenance(APIView):
+    """
+    Lift maintenance
+    """
+    @swagger_auto_schema(
+        operation_summary="lift maintenance: mark lift out of order",
+        operation_description="lift maintenance: mark lift out of order",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            description='true -> out of order, false -> running',
+            properties={
+                'out_of_order': openapi.Schema(
+                    type=openapi.TYPE_BOOLEAN,
+                    default=False
+                    # description='Inintialize'
+                )
+            }
+        ),
+    )
     def patch(self,req,id):
         elevator_system = get_elevator_system()
         lift = get_lift_from_id(id)
@@ -221,6 +337,21 @@ class LiftMaintenance(APIView):
         )
 
 class CallLiftView(APIView):
+    @swagger_auto_schema(
+        operation_summary="call lift at a specific floor",
+        operation_description="call lift at a specific floor",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            description='calling floor',
+            properties={
+                'floor': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    default=0
+                    # description='Inintialize'
+                )
+            }
+        ),
+    )
     def post(self,req):
         elevator_system = get_elevator_system()
         try:

@@ -1,5 +1,7 @@
 from pathlib import Path
 from decouple import config
+from corsheaders.defaults import default_headers
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -18,13 +20,18 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'drf_yasg',
 
     'rest_framework',
     'elevators.apps.ElevatorsConfig',
+    'rest_framework_swagger',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -109,3 +116,9 @@ REST_FRAMEWORK = {
 }
 
 APPEND_SLASH = False
+
+# CORS
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "Access-Control-Allow-Origin",
+]
