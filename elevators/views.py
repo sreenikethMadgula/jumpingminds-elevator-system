@@ -9,7 +9,7 @@ from .utils import *
 class HelloView(APIView):
     def get(self,req):
         elevator_system = get_elevator_system()
-        set_lifts_to_default()
+        # set_lifts_to_default()
         res = Response()
         res.data = {
             "message": "Elevator System"
@@ -75,8 +75,16 @@ class ElevatorSystemDetails(APIView):
 class LiftList(APIView):
     def get(self,req):
         lifts = Lift.objects.all()
-        serializer = LiftSerializer(lifts,many=True)
-        return Response(serializer.data)
+        # serializer = LiftSerializer(lifts,many=True)
+        data = []
+        for lift in lifts:
+            next_destination = None
+            destinations = lift.destinations
+            if len(destinations):
+                next_destination = destinations[0]
+            data.append(get_response_obj(lift,next_destination))
+        print(data)
+        return Response(data)
 
 class LiftDetails(APIView):
     def get(self,req,id: int):
@@ -84,17 +92,10 @@ class LiftDetails(APIView):
         lift = get_lift_from_id(id)
         destinations = lift.destinations
         serializer = LiftSerializer(lift)
-
+        next_destination = None
         if len(destinations):
             next_destination = destinations[0]
-        else:
-            next_destination = None
-        data = {
-            "message": "success",
-            "lift_status": serializer.data,
-            "next_destination": next_destination,
-            "movement": get_movement_string(lift)
-        }
+        data = get_response_obj(lift,next_destination)
         return Response(data,status=status.HTTP_200_OK)
 
 class LiftRequest(APIView):
@@ -105,14 +106,7 @@ class LiftRequest(APIView):
         next_destination = None
         if len(destinations):
             next_destination = destinations[0]
-        data = {
-            "message": "success",
-            "lift": lift.id,
-            "current_floor": lift.current_floor,
-            "destinations": lift.destinations,
-            "next_destination":next_destination,
-            "movement": get_movement_string(lift),
-        }
+        data = get_response_obj(lift,next_destination)
         return Response(data,status=status.HTTP_200_OK)
     
     def patch(self, req, id: int):
@@ -132,6 +126,8 @@ class LiftRequest(APIView):
             raise APIException("Floor outside range")
 
         lift = get_lift_from_id(id)
+        check_out_of_order(lift)
+
         destinations = lift.destinations
         destinations = update_destinations(lift,destination_floor)
 
@@ -150,15 +146,7 @@ class LiftRequest(APIView):
         if len(destinations):
             next_destination=destinations[0]
 
-        data = {
-            "message": "success",
-            "lift": id,
-            "door": get_door_string(lift),
-            "current_floor": lift.current_floor,
-            "destinations": destinations,
-            "next_destination": next_destination,
-            "movement": get_movement_string(lift)
-        }
+        data = get_response_obj(lift,next_destination)
         return Response(data)
 
 class LiftDoor(APIView):
@@ -172,8 +160,8 @@ class LiftDoor(APIView):
         }
     def patch(self,req,id: int):
         elevator_system = get_elevator_system()
-
         lift = get_lift_from_id(id)
+        check_out_of_order(lift)
         try:
             door=req.data["door"]
         except:
@@ -198,15 +186,7 @@ class LiftDoor(APIView):
                 next_destination = destinations[0]
             else:
                 next_destination = None
-            data = {
-                "message": "success",
-                "lift": lift.id,
-                "door": get_door_string(lift),
-                "current_floor": lift.current_floor,
-                "destinations": destinations,
-                "next_destination": next_destination,
-                "movement": get_movement_string(lift)
-            }
+            data = get_response_obj(lift,next_destination)
             return Response(
                 data,
                 status=status.HTTP_205_RESET_CONTENT
@@ -234,25 +214,10 @@ class LiftMaintenance(APIView):
             set_lift_to_default(lift)
         lift.out_of_order = ooo
         lift.save()
-        lift_dict = {
-                "id": lift.id,
-                "door": get_door_string(lift),
-                "current_floor": lift.current_floor,
-                "out_of_order": lift.out_of_order,
-                "destinations": lift.destinations,
-                "movement": get_movement_string(lift)
-            }
-        serializer = LiftSerializer(data=lift_dict)
-        if serializer.is_valid():
-            return Response(
-                {
-                    "message":"success",
-                    "lift": serializer.data
-                }
-            )
+        data = get_response_obj(lift,None)
         return Response(
-            serializer.errors,
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            data,
+            status=status.HTTP_205_RESET_CONTENT
         )
 
 class CallLiftView(APIView):
@@ -289,14 +254,6 @@ class CallLiftView(APIView):
         next_destination = None
         if len(destinations):
             next_destination=destinations[0]
-        data = {
-            "message": "success",
-            "assigned_lift": assigned_lift.id,
-            "door": get_door_string(assigned_lift),
-            "current_floor": assigned_lift.current_floor,
-            "destinations": destinations,
-            "next_destination": next_destination,
-            "movement": get_movement_string(lift)
-        }
+        data = get_response_obj(assigned_lift,next_destination)
 
         return Response(data)

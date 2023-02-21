@@ -14,23 +14,7 @@ class Lift(models.Model):
             null=True
         )
     )
-    # elevator_system = models.ForeignKey(
-    #     to='ElevatorSystem',
-    #     on_delete=models.CASCADE
-    # )
 
 class ElevatorSystem(models.Model):
     floors = models.IntegerField()
     lifts = models.IntegerField()
-
-# class LiftRequest(models.Model):
-#     lift = models.ForeignKey(
-#         to='Lift',
-#         on_delete=models.CASCADE
-#     )
-#     destinations = ArrayField(
-#         models.IntegerField(
-#             blank=True,
-#             null=True
-#         )
-#     )

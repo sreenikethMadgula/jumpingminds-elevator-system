@@ -106,6 +106,7 @@ def get_lift_score(lift: Lift,floor):
 
 def assign_lift(calling_floor: int):
     lifts = Lift.objects.filter(out_of_order=False)
+    print(lifts)
     min_score = get_lift_score(lifts[0],calling_floor)
     assigned_lift = lifts[0]
     for lift in lifts:
@@ -198,3 +199,21 @@ def go_to_next_destination(lift: Lift):
         lift.save()
 
     return destinations
+
+
+def get_response_obj(lift: Lift,next_destination):
+    data = {
+        "message": "success",
+        "lift": lift.id,
+        "door": get_door_string(lift),
+        "current_floor": lift.current_floor,
+        "destinations": lift.destinations,
+        "next_destination":next_destination,
+        "movement": get_movement_string(lift),
+        "out_of_order":lift.out_of_order
+    }
+    return data
+
+def check_out_of_order(lift: Lift):
+    if lift.out_of_order:
+        raise APIException("Lift is out of order")
