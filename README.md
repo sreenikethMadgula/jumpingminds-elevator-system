@@ -146,6 +146,7 @@ The logic is implemented in `elevators/utils.py` using `update_destinations()`. 
   - `settings` is divided into `base.py`, `dev.py`, `prod.py`
   - `dev.py` has specific settings for local (development) version while `prod.py` has production settings 
   - `prod.py` is used when run with `gunicorn` and `dev.py` is used when run with `manage.py`
+  - `gunicorn` cannot server static files by itself, so `nginx` must be setup. `nginx` acts as reverse-proxy and also serves static files
 - The `elevators` directory contains the application files
   - `utils.py` contains helper functions to avoid repeating code (DRY) and cleaner code in `views.py`
   - `serializers.py` contains model serializers to serialize JSON to database format and deserialize vice versa.
@@ -154,5 +155,6 @@ The logic is implemented in `elevators/utils.py` using `update_destinations()`. 
 ## Deploy
 
 The project can be containerized using the `Dockerfile`. It uses `entrypoint.sh` containing commands to be run.
+There is also a `docker-compose.yml` file.
 
-Use `docker build` and `docker run`.
+`docker build` and `docker run` can be used to build and run the image respectively. Or `docker-compose up --build` can be used to build and `docker compose up` to run
