@@ -8,8 +8,8 @@ from .utils import *
 
 class HelloView(APIView):
     def get(self,req):
-        # set_lifts_to_default()
         elevator_system = get_elevator_system()
+        set_lifts_to_default()
         res = Response()
         res.data = {
             "message": "Elevator System"
@@ -111,7 +111,7 @@ class LiftRequest(APIView):
             "current_floor": lift.current_floor,
             "destinations": lift.destinations,
             "next_destination":next_destination,
-            "movement": get_lift_movement,
+            "movement": get_movement_string(lift),
         }
         return Response(data,status=status.HTTP_200_OK)
     
@@ -153,10 +153,11 @@ class LiftRequest(APIView):
         data = {
             "message": "success",
             "lift": id,
+            "door": get_door_string(lift),
             "current_floor": lift.current_floor,
             "destinations": destinations,
             "next_destination": next_destination,
-            "movement": get_lift_movement(lift)
+            "movement": get_movement_string(lift)
         }
         return Response(data)
 
@@ -167,7 +168,7 @@ class LiftDoor(APIView):
         data = {
             "message": "success",
             "lift":lift.id,
-            "door":lift.door
+            "door":get_door_string(lift)
         }
     def patch(self,req,id: int):
         elevator_system = get_elevator_system()
@@ -200,7 +201,7 @@ class LiftDoor(APIView):
             data = {
                 "message": "success",
                 "lift": lift.id,
-                "door": lift.door,
+                "door": get_door_string(lift),
                 "current_floor": lift.current_floor,
                 "destinations": destinations,
                 "next_destination": next_destination,
@@ -235,10 +236,11 @@ class LiftMaintenance(APIView):
         lift.save()
         lift_dict = {
                 "id": lift.id,
-                "door": lift.door,
+                "door": get_door_string(lift),
                 "current_floor": lift.current_floor,
                 "out_of_order": lift.out_of_order,
-                "destinations": lift.destinations
+                "destinations": lift.destinations,
+                "movement": get_movement_string(lift)
             }
         serializer = LiftSerializer(data=lift_dict)
         if serializer.is_valid():
@@ -289,11 +291,12 @@ class CallLiftView(APIView):
             next_destination=destinations[0]
         data = {
             "message": "success",
-            "current_floor": assigned_lift.current_floor,
             "assigned_lift": assigned_lift.id,
+            "door": get_door_string(assigned_lift),
+            "current_floor": assigned_lift.current_floor,
             "destinations": destinations,
             "next_destination": next_destination,
-            "door": assigned_lift.door
+            "movement": get_movement_string(lift)
         }
 
         return Response(data)

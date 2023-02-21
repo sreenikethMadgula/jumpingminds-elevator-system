@@ -6,6 +6,7 @@ def set_lift_to_default(lift: Lift):
     lift.out_of_order = False
     lift.door = False
     lift.current_floor = 0
+    lift.destinations = []
     lift.save()
 
 def set_lifts_to_default():
@@ -65,6 +66,12 @@ def get_movement_string(lift: Lift):
         return "GOING UP"
     return "GOING DOWN"
 
+def get_door_string(lift: Lift):
+    door = lift.door
+    if lift.door:
+        return "OPEN"
+    return 'CLOSED'
+
 def get_lift_score(lift: Lift,floor):
     current_floor = lift.current_floor
 
@@ -92,6 +99,7 @@ def get_lift_score(lift: Lift,floor):
         if (floor > current_floor and floor < next_destination) or (floor < current_floor and floor > next_destination):
             return score + abs(floor - current_floor)
         score += abs(next_destination-current_floor)
+        i+=1
     score += abs(destinations[n-1] - floor)
     return score
 
@@ -116,6 +124,7 @@ def shitf_right(arr: list, pos: int):
     i = n-1
     while i>pos:
         arr[i] = arr[i-1]
+        i-=1
     return arr
 
 
@@ -136,8 +145,8 @@ def update_destinations(lift: Lift, floor):
         return destinations
 
 
+    next_destination = destinations[0]
     if n==1:
-        next_destination = destinations[0]
         if (floor > current_floor and floor < next_destination) or (floor < current_floor and floor > next_destination):
             destinations.append(next_destination)
             destinations[0] = floor
@@ -147,21 +156,34 @@ def update_destinations(lift: Lift, floor):
         lift.destinations = destinations
         lift.save()
         return destinations
+
+    if floor == current_floor:
+        return destinations
+    if (floor > current_floor and floor < next_destination) or (floor < current_floor and floor > next_destination):
+        destinations.append(0)
+        destinations = shitf_right(destinations,-1)
+        destinations[0] = floor
+        lift.destinations = destinations
+        lift.save()
+        return destinations
+
+
     i = 0
     while i+1<n:
         current_floor = destinations[i]
-        print(current_floor)
         next_destination = destinations[i+1]
         if floor == current_floor:
             return destinations
-        print(i,"floor",floor,current_floor,next_destination)
         if (floor > current_floor and floor < next_destination) or (floor < current_floor and floor > next_destination):
             destinations.append(0)
             destinations = shitf_right(destinations,i)
-            destinations[i] = floor
+            destinations[i+1] = floor
             lift.destinations = destinations
             lift.save()
             return destinations
+        i+=1
+    if destinations[i]==floor:
+        return destinations
     destinations.append(floor)
     lift.destinations = destinations
     lift.save()
