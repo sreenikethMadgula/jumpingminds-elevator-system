@@ -19,22 +19,26 @@ def initialize_lifts(max_lifts):
             "movement":False,
             "out_of_order":False,
             "current_floor":0,
-            "door":False
+            "door":False,
+            "destinations":[0]
         }
         serializer = LiftSerializer(data=lift)
         if serializer.is_valid():
-            lift = serializer.save()
+            serializer.save()
+            lift = Lift.objects.get(pk=lift.id)
+            lift.destinations = []
+            lift.save()
 
-        lift_request_obj = {
-            "lift": lift.id,
-            "destinations":[0]
-        }
-        serializer = LiftRequestSerializer(data=lift_request_obj)
-        if serializer.is_valid():
-            obj = serializer.save()
-            obj = LiftRequest.objects.filter(lift=lift).first()
-            obj.destinations = []
-            obj.save()
+        # lift_request_obj = {
+        #     "lift": lift.id,
+        #     "destinations":[0]
+        # }
+        # serializer = LiftRequestSerializer(data=lift_request_obj)
+        # if serializer.is_valid():
+        #     obj = serializer.save()
+        #     obj = LiftRequest.objects.filter(lift=lift).first()
+        #     obj.destinations = []
+        #     obj.save()
             # serializer = LiftRequestSerializer(obj)
         
         # return serializer
@@ -59,12 +63,12 @@ def get_lift_from_id(id: int):
 def get_lift_req_obj_from_lift(lift: Lift):
     return LiftRequest.objects.filter(lift=lift).first()
 
-def get_lift_destinations(lift: Lift):
-    obj = LiftRequest.objects.filter(lift=lift).first()
-    return obj.destinations
+# def get_lift_destinations(lift: Lift):
+#     obj = LiftRequest.objects.filter(lift=lift).first()
+#     return obj.destinations
 
 def get_lift_movement(lift: Lift):
-    destinations = get_lift_destinations(lift)
+    destinations = lift.destinations
     if len(destinations) == 0:
         return 0
 
@@ -86,7 +90,7 @@ def get_lift_score(lift: Lift,floor):
 
     if floor == current_floor:
         return 0
-    destinations = get_lift_destinations(lift)
+    destinations = lift.destinations
     
     n = len(destinations)
     if n == 0:
@@ -114,7 +118,6 @@ def get_lift_score(lift: Lift,floor):
 
 def assign_lift(calling_floor: int):
     lifts = Lift.objects.filter(out_of_order=False)
-    # lifts = Lift.objects.filter(lift__out_of_order=False)
     min_score = get_lift_score(lifts[0],calling_floor)
     assigned_lift = lifts[0]
     for lift in lifts:
@@ -137,12 +140,10 @@ def shitf_right(arr: list, pos: int):
 
 
 def update_destinations(lift: Lift, floor):
-    lift_request_obj = get_lift_req_obj_from_lift(lift)
     
-    lift = Lift.objects.get(pk=lift_request_obj.lift.id)
     current_floor = lift.current_floor
     
-    destinations = lift_request_obj.destinations
+    destinations = lift.destinations
     n = len(destinations)
     
     if floor == current_floor:
@@ -150,8 +151,8 @@ def update_destinations(lift: Lift, floor):
 
     if n == 0:
         destinations.append(floor)
-        lift_request_obj.destinations = destinations
-        lift_request_obj.save()
+        lift.destinations = destinations
+        lift.save()
         return destinations
 
 
@@ -163,8 +164,8 @@ def update_destinations(lift: Lift, floor):
         else:
             destinations.append(floor)
 
-        lift_request_obj.destinations = destinations
-        lift_request_obj.save()
+        lift.destinations = destinations
+        lift.save()
         return destinations
     i = 0
     while i+1<n:
@@ -178,22 +179,20 @@ def update_destinations(lift: Lift, floor):
             destinations.append(0)
             destinations = shitf_right(destinations,i)
             destinations[i] = floor
-            lift_request_obj.destinations = destinations
-            lift_request_obj.save()
+            lift.destinations = destinations
+            lift.save()
             return destinations
     destinations.append(floor)
-    lift_request_obj.destinations = destinations
-    lift_request_obj.save()
+    lift.destinations = destinations
+    lift.save()
     return destinations
 
 
 def go_to_next_destination(lift: Lift):
-    obj = get_lift_req_obj_from_lift(lift)
-    destinations = obj.destinations
+    destinations = lift.destinations
     if len(destinations):
         lift.current_floor = destinations.pop(0)
-        obj.destinations = destinations
-        obj.save()
+        lift.destinations = destinations
         lift.save()
 
     return destinations
