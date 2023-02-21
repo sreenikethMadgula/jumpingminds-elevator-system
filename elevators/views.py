@@ -25,55 +25,69 @@ class LiftStatus(APIView):
     def get(self,req,id: int):
         elevator_system = get_elevator_system()
         lift = get_lift_from_id(id)
+        destinations = get_lift_destinations(lift)
         serializer = LiftSerializer(lift)
+
+        if len(destinations):
+            next_destination = destinations[0]
+        else:
+            next_destination = None
         data = {
             "message": "success",
-            "lift_status": serializer.data
+            "lift_status": serializer.data,
+            "destinations": destinations,
+            "next_destination": next_destination,
+            "movement": get_movement_string(lift)
         }
         return Response(data,status=status.HTTP_200_OK)
 
     def patch(self,req,id: int):
-        elevator_system = get_elevator_system()
+        try:
+            elevator_system = get_elevator_system()
 
-        lift = get_lift_from_id(id)
-        try:
-            door=req.data["data"]
-        except:
-            return Response(
-                {
-                    "message": "must have and can only change door field"
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        try:
-            lift.door = door
-            serializer = LiftSerializer(data=lift)
-            if serializer.is_valid():
-                serializer.save()
-            else:
+            lift = get_lift_from_id(id)
+            try:
+                door=req.data["door"]
+            except:
                 return Response(
-                    serializer.errors,
+                    {
+                        "message": "must have and can only change door field"
+                    },
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            if door == False:
+            try:
+                lift.door = door
+                lift.save()
+                
                 destinations = get_lift_destinations(lift)
-                if len(destinations) != 0:
-                    destinations = go_to_next_destination(lift)
-                    lift.door = True
-                    lift.save()
+                if door == False:
+                    if len(destinations) != 0:
+                        destinations = go_to_next_destination(lift)
+                        lift.door = True
+                        lift.save()
 
-            data = {
-                "message": "success",
-                "lift": lift.id,
-                "door": lift.door,
-                "destinations": destinations
-            }
-            return Response(
-                data,
-                status=status.HTTP_205_RESET_CONTENT
-            )
-        except:
-            raise APIException("Failed due to internal server error")
+                if len(destinations):
+                    next_destination = destinations[0]
+                else:
+                    next_destination = None
+                data = {
+                    "message": "success",
+                    "lift": lift.id,
+                    "door": lift.door,
+                    "current_floor": lift.current_floor,
+                    "destinations": destinations,
+                    "next_destination": next_destination,
+                    "movement": get_movement_string(lift)
+                }
+                return Response(
+                    data,
+                    status=status.HTTP_205_RESET_CONTENT
+                )
+            except:
+                raise APIException("Failed due to internal server error")
+        except Exception as e:
+            raise APIException(e)
+
         # try:
         #     ooo = req.data["out_of_order"]
         #     lift.out_of_order = ooo
@@ -122,7 +136,13 @@ class LiftMaintenance(APIView):
         set_lift_to_default(lift)
         lift.out_of_order = ooo
         lift.save()
-        serializer = LiftSerializer(data=lift)
+        lift_dict = {
+                "id": lift.id,
+                "door": lift.door,
+                "current_floor": lift.current_floor,
+                "out_of_order": lift.out_of_order,
+            }
+        serializer = LiftSerializer(data=lift_dict)
         if serializer.is_valid():
             return Response(
                 {
@@ -130,8 +150,10 @@ class LiftMaintenance(APIView):
                     "lift": serializer.data
                 }
             )
-        else:
-            raise APIException("Failed due to internal server error")
+        return Response(
+            serializer.errors,
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 # class LiftPositionsView(APIView):
 #     def get(self,req):

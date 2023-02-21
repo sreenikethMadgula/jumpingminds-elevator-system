@@ -3,7 +3,6 @@ from .serializers import *
 from rest_framework.exceptions import *
 
 def set_lift_to_default(lift: Lift):
-    lift.movement = False
     lift.out_of_order = False
     lift.door = False
     lift.current_floor = 0
@@ -25,7 +24,6 @@ def initialize_lifts(max_lifts):
         serializer = LiftSerializer(data=lift)
         if serializer.is_valid():
             lift = serializer.save()
-            print("lift",lift.id)
 
         lift_request_obj = {
             "lift": lift.id,
@@ -34,18 +32,17 @@ def initialize_lifts(max_lifts):
         serializer = LiftRequestSerializer(data=lift_request_obj)
         if serializer.is_valid():
             obj = serializer.save()
-            print("obj", obj.id)
             obj = LiftRequest.objects.filter(lift=lift).first()
             obj.destinations = []
             obj.save()
-            print("destinations",obj.destinations)
             # serializer = LiftRequestSerializer(obj)
         
         # return serializer
 
 def get_elevator_system():
+    elevatorSystem = ElevatorSystem.objects.all().first()
     try:
-        elevatorSystem = ElevatorSystem.objects.all().first()
+        elevatorSystem = ElevatorSystem.objects.get(pk=elevatorSystem.id)
     except:
         raise APIException("Elevator System not initialized.")
     
@@ -64,15 +61,14 @@ def get_lift_req_obj_from_lift(lift: Lift):
 
 def get_lift_destinations(lift: Lift):
     obj = LiftRequest.objects.filter(lift=lift).first()
-    print("obj",obj)
     return obj.destinations
 
 def get_lift_movement(lift: Lift):
     destinations = get_lift_destinations(lift)
     if len(destinations) == 0:
         return 0
-    
-    if lift.current_floor > destinations[0]:
+
+    if lift.current_floor < destinations[0]:
         return 1
     
     return 2
@@ -88,7 +84,7 @@ def get_movement_string(lift: Lift):
 def get_lift_score(lift: Lift,floor):
     current_floor = lift.current_floor
 
-    if floor == current_floor and not lift.movement:
+    if floor == current_floor:
         return 0
     destinations = get_lift_destinations(lift)
     
@@ -122,6 +118,9 @@ def assign_lift(calling_floor: int):
     min_score = get_lift_score(lifts[0],calling_floor)
     assigned_lift = lifts[0]
     for lift in lifts:
+        if lift.current_floor == calling_floor:
+            if lift.door:
+                return lift
         score = get_lift_score(lift,calling_floor)
         if score < min_score:
             min_score = score
@@ -134,41 +133,58 @@ def shitf_right(arr: list, pos: int):
     i = n-1
     while i>pos:
         arr[i] = arr[i-1]
+    return arr
 
 
 def update_destinations(lift: Lift, floor):
     lift_request_obj = get_lift_req_obj_from_lift(lift)
-    destinations = lift_request_obj.destinations
+    
     lift = Lift.objects.get(pk=lift_request_obj.lift.id)
+    current_floor = lift.current_floor
+    
+    destinations = lift_request_obj.destinations
     n = len(destinations)
+    
+    if floor == current_floor:
+        return destinations
+
     if n == 0:
         destinations.append(floor)
         lift_request_obj.destinations = destinations
         lift_request_obj.save()
         return destinations
 
-    current_floor = lift.current_floor
 
     if n==1:
         next_destination = destinations[0]
         if (floor > current_floor and floor < next_destination) or (floor < current_floor and floor > next_destination):
             destinations.append(next_destination)
             destinations[0] = floor
-            lift_request_obj.destinations = destinations
-            lift_request_obj.save()
-            return destinations
-        
+        else:
+            destinations.append(floor)
+
+        lift_request_obj.destinations = destinations
+        lift_request_obj.save()
+        return destinations
     i = 0
     while i+1<n:
-        current_floor = destinations[i],
+        current_floor = destinations[i]
+        print(current_floor)
         next_destination = destinations[i+1]
+        if floor == current_floor:
+            return destinations
+        print(i,"floor",floor,current_floor,next_destination)
         if (floor > current_floor and floor < next_destination) or (floor < current_floor and floor > next_destination):
             destinations.append(0)
-            shitf_right(destinations,i)
+            destinations = shitf_right(destinations,i)
             destinations[i] = floor
             lift_request_obj.destinations = destinations
             lift_request_obj.save()
             return destinations
+    destinations.append(floor)
+    lift_request_obj.destinations = destinations
+    lift_request_obj.save()
+    return destinations
 
 
 def go_to_next_destination(lift: Lift):

@@ -11,7 +11,7 @@ urlpatterns = [
     path('lift/<int:id>/',LiftStatus.as_view()),
     # path('lift/positions/', LiftPositionsView.as_view()),
     path('lift/<int:id>/requests/',LiftRequestDetails.as_view()),
-    path('/request/',CallLiftView.as_view()),
+    path('request/',CallLiftView.as_view()),
     # path('/user/choose-floor/',ChooseFloorView.as_view()),
     # path('/user/close-door/',CloseDoorView.as_view()), # lift/id/close
 ]
