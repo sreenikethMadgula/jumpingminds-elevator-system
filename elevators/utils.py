@@ -24,24 +24,11 @@ def initialize_lifts(max_lifts):
         }
         serializer = LiftSerializer(data=lift)
         if serializer.is_valid():
-            serializer.save()
+            lift = serializer.save()
             lift = Lift.objects.get(pk=lift.id)
             lift.destinations = []
             lift.save()
 
-        # lift_request_obj = {
-        #     "lift": lift.id,
-        #     "destinations":[0]
-        # }
-        # serializer = LiftRequestSerializer(data=lift_request_obj)
-        # if serializer.is_valid():
-        #     obj = serializer.save()
-        #     obj = LiftRequest.objects.filter(lift=lift).first()
-        #     obj.destinations = []
-        #     obj.save()
-            # serializer = LiftRequestSerializer(obj)
-        
-        # return serializer
 
 def get_elevator_system():
     elevatorSystem = ElevatorSystem.objects.all().first()
@@ -59,13 +46,6 @@ def get_lift_from_id(id: int):
         raise NotFound("Invalid lift id")
 
     return lift
-
-def get_lift_req_obj_from_lift(lift: Lift):
-    return LiftRequest.objects.filter(lift=lift).first()
-
-# def get_lift_destinations(lift: Lift):
-#     obj = LiftRequest.objects.filter(lift=lift).first()
-#     return obj.destinations
 
 def get_lift_movement(lift: Lift):
     destinations = lift.destinations

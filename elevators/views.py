@@ -9,6 +9,7 @@ from .utils import *
 class HelloView(APIView):
     def get(self,req):
         # set_lifts_to_default()
+        elevator_system = get_elevator_system()
         res = Response()
         res.data = {
             "message": "Elevator System"
@@ -19,7 +20,7 @@ class ElevatorSystemDetails(APIView):
     def post(self, req):
         
         if len(ElevatorSystem.objects.all()) == 1:
-            raise APIException("Already Initialized. You can try updating using PUT or PATCH")
+            raise APIException("Already Initialized. You can DELETE and initialize again")
 
         try:
             max_lifts = req.data["lifts"]
@@ -59,51 +60,11 @@ class ElevatorSystemDetails(APIView):
         }
         return Response(data,status=status.HTTP_200_OK)
     
-    def put(self,req):
-        elevator_system = get_elevator_system()
-        try:
-            lifts = req.data["lifts"]
-            floors = req.data["floors"]
-        except:
-            return Response(
-                {
-                    "message": "missing fields: lifts and/or floors"
-                }
-            )
-        serializer = ElevatorSystemSerializer(elevator_system,data=req.data)
-        if serializer.is_valid():
-            serializer.save()
-            data = {
-                "message": "success",
-                "elevator-system": serializer.data
-            }
-            if lifts>elevator_system.lifts:
-                initialize_lifts(elevator_system.lifts - lifts)      
-            return Response(data,status=status.HTTP_205_RESET_CONTENT)
-        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
-
-    def patch(self,req):
-        elevator_system = get_elevator_system()
-        try:
-            lifts = req.data["lifts"]
-            if lifts>elevator_system.lifts:
-                initialize_lifts(elevator_system.lifts - lifts)
-        except Exception as e:
-            print("this happened", e)
-            pass
-        serializer = ElevatorSystemSerializer(elevator_system,data=req.data,partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            data = {
-                "message": "success",
-                "elevator-system": serializer.data
-            }
-            return Response(data,status=status.HTTP_205_RESET_CONTENT)
-        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self,req):
         elevator_system = get_elevator_system()
         elevator_system.delete()
+        Lift.objects.all().delete()
         return Response(
             {
                 "message":"success"
@@ -147,6 +108,7 @@ class LiftRequest(APIView):
         data = {
             "message": "success",
             "lift": lift.id,
+            "current_floor": lift.current_floor,
             "destinations": lift.destinations,
             "next_destination":next_destination,
             "movement": get_lift_movement,
@@ -191,6 +153,7 @@ class LiftRequest(APIView):
         data = {
             "message": "success",
             "lift": id,
+            "current_floor": lift.current_floor,
             "destinations": destinations,
             "next_destination": next_destination,
             "movement": get_lift_movement(lift)
@@ -329,7 +292,7 @@ class CallLiftView(APIView):
             "current_floor": assigned_lift.current_floor,
             "assigned_lift": assigned_lift.id,
             "destinations": destinations,
-            "next_destination": next_destinations,
+            "next_destination": next_destination,
             "door": assigned_lift.door
         }
 
