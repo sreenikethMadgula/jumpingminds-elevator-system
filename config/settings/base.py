@@ -24,7 +24,6 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'elevators.apps.ElevatorsConfig',
-    'rest_framework_swagger',
     'corsheaders',
 ]
 

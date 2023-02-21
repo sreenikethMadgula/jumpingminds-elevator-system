@@ -58,8 +58,11 @@ class ElevatorSystemDetails(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        if max_lifts > 10:
-            raise APIException("Can have a maximum of 10 lifts")
+        if max_lifts > 100:
+            raise APIException("Can have a maximum of 100 lifts")
+
+        if max_floors > 100:
+            raise APIException("Can have a maximum of 100 floors")
         
         serializer = ElevatorSystemSerializer(data=req.data)
         if serializer.is_valid():

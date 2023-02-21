@@ -4,6 +4,7 @@ from django.contrib.postgres.fields import ArrayField
 
 
 class Lift(models.Model):
+    id = models.PositiveSmallIntegerField(unique=True,primary_key=True)
     out_of_order = models.BooleanField(default=False)
     # True: open, False: closed
     door = models.BooleanField(default=False)

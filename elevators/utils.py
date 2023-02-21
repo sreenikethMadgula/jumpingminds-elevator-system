@@ -17,6 +17,7 @@ def set_lifts_to_default():
 def initialize_lifts(max_lifts):
     for i in range(max_lifts):
         lift = {
+            "id": i+1,
             "movement":False,
             "out_of_order":False,
             "current_floor":0,
