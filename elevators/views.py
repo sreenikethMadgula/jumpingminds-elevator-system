@@ -125,9 +125,16 @@ class LiftList(APIView):
             destinations = lift.destinations
             if len(destinations):
                 next_destination = destinations[0]
-            data.append(get_response_obj(lift,next_destination))
-        print(data)
-        return Response(data)
+            obj = get_response_obj(lift,next_destination)
+            del obj["message"]
+            data.append(obj)
+    
+        return Response(
+            {
+                "message": "success",
+                "lifts": data
+            }
+        )
 
 class LiftDetails(APIView):
     """
@@ -388,6 +395,16 @@ class CallLiftView(APIView):
         next_destination = None
         if len(destinations):
             next_destination=destinations[0]
-        data = get_response_obj(assigned_lift,next_destination)
+        
+        data = {
+            "message": "success",
+            "assigned_lift": assigned_lift.id,
+            "door": get_door_string(assigned_lift),
+            "current_floor": assigned_lift.current_floor,
+            "destinations": assigned_lift.destinations,
+            "next_destination":next_destination,
+            "movement": get_movement_string(assigned_lift),
+            "out_of_order":assigned_lift.out_of_order
+        }
 
         return Response(data)

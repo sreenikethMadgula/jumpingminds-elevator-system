@@ -107,7 +107,6 @@ def get_lift_score(lift: Lift,floor):
 
 def assign_lift(calling_floor: int):
     lifts = Lift.objects.filter(out_of_order=False)
-    print(lifts)
     min_score = get_lift_score(lifts[0],calling_floor)
     assigned_lift = lifts[0]
     for lift in lifts:
@@ -149,6 +148,8 @@ def update_destinations(lift: Lift, floor):
 
     next_destination = destinations[0]
     if n==1:
+        if floor == next_destination:
+            return destinations
         if (floor > current_floor and floor < next_destination) or (floor < current_floor and floor > next_destination):
             destinations.append(next_destination)
             destinations[0] = floor
@@ -159,7 +160,7 @@ def update_destinations(lift: Lift, floor):
         lift.save()
         return destinations
 
-    if floor == current_floor:
+    if floor == current_floor or floor == next_destination:
         return destinations
     if (floor > current_floor and floor < next_destination) or (floor < current_floor and floor > next_destination):
         destinations.append(0)
@@ -174,7 +175,7 @@ def update_destinations(lift: Lift, floor):
     while i+1<n:
         current_floor = destinations[i]
         next_destination = destinations[i+1]
-        if floor == current_floor:
+        if floor == current_floor or floor == next_destination:
             return destinations
         if (floor > current_floor and floor < next_destination) or (floor < current_floor and floor > next_destination):
             destinations.append(0)
